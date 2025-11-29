@@ -32,6 +32,7 @@ Copy the following libraries to your `CIRCUITPY/lib` folder. You can get them fr
 - `adafruit_fakerequests.mpy`
 - `adafruit_io/`
 - `adafruit_connection_manager.mpy`
+- `adafruit_minimqtt/` (folder - required by network module)
 
 ### 3. Configure WiFi Credentials (Important!)
 
