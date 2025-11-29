@@ -14,8 +14,7 @@ Hardware:
 - 64x32 RGB LED Matrix
 
 Setup:
-1. Copy secrets.py.template to secrets.py and fill in your WiFi credentials
-   OR copy settings.toml.template to settings.toml (for CircuitPython 8.x+)
+1. Copy settings.toml.template to settings.toml and fill in your WiFi credentials
 2. Copy this file (code.py) to your CIRCUITPY drive
 3. Install required libraries (see README.md)
 """
@@ -68,15 +67,13 @@ DIGIT_PATTERNS = {
 
 def get_credentials():
     """
-    Get WiFi credentials from secrets.py or settings.toml
+    Get WiFi credentials from settings.toml
 
-    For CircuitPython 8.x+, credentials can be stored in settings.toml
-    For older versions, use secrets.py
+    CircuitPython 8.x+ automatically loads settings.toml from the CIRCUITPY drive.
 
     Returns:
         tuple: (ssid, password, timezone)
     """
-    # First try settings.toml (CircuitPython 8.x+ auto-loads this)
     ssid = os.getenv("CIRCUITPY_WIFI_SSID")
     password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
     timezone = os.getenv("TIMEZONE", "America/New_York")
@@ -84,15 +81,9 @@ def get_credentials():
     if ssid and password:
         return ssid, password, timezone
 
-    # Fallback to secrets.py
-    try:
-        from secrets import secrets
-        return secrets["ssid"], secrets["password"], secrets.get("timezone", "America/New_York")
-    except ImportError:
-        print("ERROR: WiFi credentials not found!")
-        print("Please create secrets.py from secrets.py.template")
-        print("OR create settings.toml from settings.toml.template")
-        raise RuntimeError("WiFi credentials not configured")
+    print("ERROR: WiFi credentials not found!")
+    print("Please create settings.toml from settings.toml.template")
+    raise RuntimeError("WiFi credentials not configured")
 
 
 class TetrisBlock:

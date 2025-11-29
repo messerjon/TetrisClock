@@ -37,8 +37,6 @@ Copy the following libraries to your `CIRCUITPY/lib` folder. You can get them fr
 
 Your WiFi credentials must be configured locally and are NOT stored in GitHub.
 
-#### Option A: Using settings.toml (CircuitPython 8.x+, Recommended)
-
 1. Copy `circuitpython/settings.toml.template` to your `CIRCUITPY` drive as `settings.toml`
 2. Edit `settings.toml` with your credentials:
 
@@ -46,19 +44,6 @@ Your WiFi credentials must be configured locally and are NOT stored in GitHub.
 CIRCUITPY_WIFI_SSID = "YourWiFiNetworkName"
 CIRCUITPY_WIFI_PASSWORD = "YourWiFiPassword"
 TIMEZONE = "America/New_York"
-```
-
-#### Option B: Using secrets.py (Older CircuitPython versions)
-
-1. Copy `circuitpython/secrets.py.template` to your `CIRCUITPY` drive as `secrets.py`
-2. Edit `secrets.py` with your credentials:
-
-```python
-secrets = {
-    "ssid": "YourWiFiNetworkName",
-    "password": "YourWiFiPassword",
-    "timezone": "America/New_York",
-}
 ```
 
 ### 4. Copy the Code
@@ -89,16 +74,16 @@ Common examples:
 
 ## Security Note
 
-The `secrets.py` and `settings.toml` files are included in `.gitignore` to prevent accidental commits of your WiFi credentials. Always keep your credentials private!
+The `settings.toml` file is included in `.gitignore` to prevent accidental commits of your WiFi credentials. Always keep your credentials private!
 
 ## Troubleshooting
 
 ### Clock shows wrong time
-- Check your timezone setting in `settings.toml` or `secrets.py`
+- Check your timezone setting in `settings.toml`
 - Ensure WiFi is connected (NeoPixel will flash during connection)
 
 ### "WiFi credentials not found" error
-- Make sure you created `secrets.py` from `secrets.py.template` OR `settings.toml` from `settings.toml.template`
+- Make sure you created `settings.toml` from `settings.toml.template`
 - Check that the file is on the root of your `CIRCUITPY` drive
 
 ### Display not working

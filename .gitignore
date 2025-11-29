@@ -20,9 +20,8 @@ Gemfile.lock
 # CircuitPython-specific files
 *.mpy
 
-# WiFi credentials and secrets - DO NOT COMMIT
-# Copy secrets.py.template to secrets.py and add your credentials
-secrets.py
+# WiFi credentials - DO NOT COMMIT
+# Copy settings.toml.template to settings.toml and add your credentials
 settings.toml
 
 # Python-specific files
