@@ -24,8 +24,6 @@ import os
 import time
 import board
 import displayio
-import terminalio
-import adafruit_display_text.label
 from adafruit_matrixportal.matrix import Matrix
 from adafruit_matrixportal.network import Network
 import random
@@ -128,11 +126,12 @@ class TetrisClock:
         self.display = self.matrix.display
 
         # Create bitmap for drawing
-        self.bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, 8)
-        self.palette = displayio.Palette(8)
+        self.bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, 9)
+        self.palette = displayio.Palette(9)
         self.palette[0] = 0x000000  # Black background
         for i, color in enumerate(TETRIS_COLORS):
             self.palette[i + 1] = color
+        self.palette[8] = 0xFFFFFF  # White for colon
 
         # Create tile grid
         self.grid = displayio.TileGrid(self.bitmap, pixel_shader=self.palette)
@@ -195,7 +194,7 @@ class TetrisClock:
     def create_digit_animation(self, digit, x_offset, y_offset, color_index):
         """Create falling blocks for a digit"""
         if digit not in DIGIT_PATTERNS:
-            return
+            return []
 
         pattern = DIGIT_PATTERNS[digit]
         blocks = []
@@ -285,7 +284,7 @@ class TetrisClock:
 
     def draw_colon(self, x, y, visible):
         """Draw blinking colon"""
-        color_index = 7 if visible else 0  # White or black
+        color_index = 8 if visible else 0  # White or black
 
         # Top dot
         self.draw_block(x, y + 4, color_index)
