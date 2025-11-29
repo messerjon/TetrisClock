@@ -16,3 +16,23 @@ _site/
 # counterproductive to check this file into the repository.
 # Details at https://github.com/github/pages-gem/issues/768
 Gemfile.lock
+
+# CircuitPython-specific files
+*.mpy
+
+# WiFi credentials and secrets - DO NOT COMMIT
+# Copy secrets.py.template to secrets.py and add your credentials
+secrets.py
+settings.toml
+
+# Python-specific files
+__pycache__
+*.pyc
+
+# MacOS-specific files
+*.DS_Store
+
+# IDE-specific files
+.idea
+.vscode
+*~
