@@ -242,8 +242,10 @@ class TetrisClock:
             )
             blocks.append(block)
 
-        # Randomize fall order
-        random.shuffle(blocks)
+        # Randomize fall order (CircuitPython doesn't have random.shuffle)
+        for i in range(len(blocks) - 1, 0, -1):
+            j = random.randint(0, i)
+            blocks[i], blocks[j] = blocks[j], blocks[i]
         return blocks
 
     def animate_time(self, time_str, ampm):
@@ -341,10 +343,25 @@ class TetrisClock:
         print("[DEBUG] run() method starting...")
         print("[DEBUG] Syncing time with network...")
 
-        # Sync time on startup
+        # Sync time on startup using worldtimeapi.org (no Adafruit IO needed)
         try:
-            self.network.get_local_time()
-            print("[DEBUG] Time synchronized successfully!")
+            # Use worldtimeapi.org for time sync - doesn't require Adafruit IO account
+            TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
+            print(f"[DEBUG] Fetching time from {TIME_URL}")
+            response = self.network.fetch(TIME_URL)
+            time_data = response.json()
+            # Parse the datetime string (format: "2024-01-15T10:30:45.123456-05:00")
+            datetime_str = time_data["datetime"]
+            # Extract date and time parts
+            date_part, time_part = datetime_str.split("T")
+            year, month, day = [int(x) for x in date_part.split("-")]
+            time_part = time_part.split(".")[0]  # Remove microseconds
+            hour, minute, second = [int(x) for x in time_part.split(":")]
+            # Set the RTC
+            import rtc
+            r = rtc.RTC()
+            r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
+            print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
         except Exception as e:
             print(f"[WARNING] Could not sync time: {e}")
             print("[DEBUG] Continuing with system time...")
@@ -392,7 +409,17 @@ class TetrisClock:
             if current_minute == 0 and current_second == 0:
                 print("[DEBUG] Hourly time resync...")
                 try:
-                    self.network.get_local_time()
+                    TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
+                    response = self.network.fetch(TIME_URL)
+                    time_data = response.json()
+                    datetime_str = time_data["datetime"]
+                    date_part, time_part = datetime_str.split("T")
+                    year, month, day = [int(x) for x in date_part.split("-")]
+                    time_part = time_part.split(".")[0]
+                    hour, minute, second = [int(x) for x in time_part.split(":")]
+                    import rtc
+                    r = rtc.RTC()
+                    r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
                     print("[DEBUG] Time resync successful!")
                 except Exception as e:
                     print(f"[WARNING] Time resync failed: {e}")
