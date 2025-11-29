@@ -78,6 +78,32 @@ The `settings.toml` file is included in `.gitignore` to prevent accidental commi
 
 ## Troubleshooting
 
+### Using Serial Debug Output
+
+The code includes detailed debug output over USB serial. To view it:
+
+1. **Connect via USB** - Keep the Matrix Portal connected to your computer via USB-C
+2. **Open a serial terminal** at 115200 baud:
+   - **Mu Editor** (recommended for beginners): Click "Serial" button
+   - **macOS/Linux**: `screen /dev/tty.usbmodem* 115200` or `screen /dev/ttyACM0 115200`
+   - **Windows**: Use PuTTY or similar, select the COM port at 115200 baud
+   - **Arduino IDE**: Tools → Serial Monitor, set baud to 115200
+
+3. **Press the reset button** on the Matrix Portal to see the full startup sequence
+
+You should see output like:
+```
+========================================
+Tetris Clock - Starting up...
+========================================
+[DEBUG] Importing os...
+[DEBUG] Importing time...
+...
+[DEBUG] Credentials loaded successfully for network: YourNetwork
+[DEBUG] Connecting to WiFi network: YourNetwork
+...
+```
+
 ### Clock shows wrong time
 - Check your timezone setting in `settings.toml`
 - Ensure WiFi is connected (NeoPixel will flash during connection)
@@ -85,10 +111,18 @@ The `settings.toml` file is included in `.gitignore` to prevent accidental commi
 ### "WiFi credentials not found" error
 - Make sure you created `settings.toml` from `settings.toml.template`
 - Check that the file is on the root of your `CIRCUITPY` drive
+- Verify the file has the correct format (no typos in variable names)
 
 ### Display not working
 - Ensure the matrix is properly connected to the Matrix Portal
-- Check power supply - the matrix requires significant power
+- Check power supply - the matrix requires significant power (5V 4A recommended)
+- Check serial output for any error messages
+
+### Nothing happens at startup
+- Connect via serial to see debug output
+- Check that `code.py` is in the root of the CIRCUITPY drive
+- Make sure all required libraries are in the `lib` folder
+- Try pressing the reset button on the Matrix Portal
 
 ## Credits
 

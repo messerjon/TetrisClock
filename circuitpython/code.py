@@ -17,15 +17,31 @@ Setup:
 1. Copy settings.toml.template to settings.toml and fill in your WiFi credentials
 2. Copy this file (code.py) to your CIRCUITPY drive
 3. Install required libraries (see README.md)
+
+Serial Debug:
+Connect via USB and use a serial terminal (e.g., screen, PuTTY, or Mu editor)
+at 115200 baud to see debug output.
 """
 
+print("=" * 40)
+print("Tetris Clock - Starting up...")
+print("=" * 40)
+
+print("[DEBUG] Importing os...")
 import os
+print("[DEBUG] Importing time...")
 import time
+print("[DEBUG] Importing board...")
 import board
+print("[DEBUG] Importing displayio...")
 import displayio
+print("[DEBUG] Importing Matrix from adafruit_matrixportal.matrix...")
 from adafruit_matrixportal.matrix import Matrix
+print("[DEBUG] Importing Network from adafruit_matrixportal.network...")
 from adafruit_matrixportal.network import Network
+print("[DEBUG] Importing random...")
 import random
+print("[DEBUG] All imports successful!")
 
 # Configuration
 TWELVE_HOUR_FORMAT = True  # Set to False for 24-hour format
@@ -74,15 +90,24 @@ def get_credentials():
     Returns:
         tuple: (ssid, password, timezone)
     """
+    print("[DEBUG] Reading credentials from settings.toml...")
     ssid = os.getenv("CIRCUITPY_WIFI_SSID")
     password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
     timezone = os.getenv("TIMEZONE", "America/New_York")
 
+    print(f"[DEBUG] SSID found: {'Yes' if ssid else 'No'}")
+    print(f"[DEBUG] Password found: {'Yes' if password else 'No'}")
+    print(f"[DEBUG] Timezone: {timezone}")
+
     if ssid and password:
+        print(f"[DEBUG] Credentials loaded successfully for network: {ssid}")
         return ssid, password, timezone
 
+    print("=" * 40)
     print("ERROR: WiFi credentials not found!")
     print("Please create settings.toml from settings.toml.template")
+    print("Make sure settings.toml is in the root of CIRCUITPY drive")
+    print("=" * 40)
     raise RuntimeError("WiFi credentials not configured")
 
 
@@ -112,11 +137,20 @@ class TetrisClock:
     """Main Tetris Clock class"""
 
     def __init__(self):
+        print("[DEBUG] TetrisClock.__init__() starting...")
+
         # Initialize the matrix
-        self.matrix = Matrix(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, bit_depth=4)
-        self.display = self.matrix.display
+        print("[DEBUG] Initializing LED matrix...")
+        try:
+            self.matrix = Matrix(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, bit_depth=4)
+            self.display = self.matrix.display
+            print("[DEBUG] LED matrix initialized successfully!")
+        except Exception as e:
+            print(f"[ERROR] Failed to initialize LED matrix: {e}")
+            raise
 
         # Create bitmap for drawing
+        print("[DEBUG] Creating display bitmap and palette...")
         self.bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, 9)
         self.palette = displayio.Palette(9)
         self.palette[0] = 0x000000  # Black background
@@ -125,20 +159,29 @@ class TetrisClock:
         self.palette[8] = 0xFFFFFF  # White for colon
 
         # Create tile grid
+        print("[DEBUG] Creating tile grid...")
         self.grid = displayio.TileGrid(self.bitmap, pixel_shader=self.palette)
         self.group = displayio.Group()
         self.group.append(self.grid)
         self.display.root_group = self.group
+        print("[DEBUG] Display setup complete!")
 
         # Get credentials and connect to WiFi
+        print("[DEBUG] Getting WiFi credentials...")
         ssid, password, self.timezone = get_credentials()
 
         # Initialize network
-        self.network = Network(status_neopixel=board.NEOPIXEL, debug=False)
+        print("[DEBUG] Initializing network with NeoPixel status indicator...")
+        self.network = Network(status_neopixel=board.NEOPIXEL, debug=True)
 
-        print(f"Connecting to WiFi: {ssid}")
-        self.network.connect()
-        print("WiFi connected!")
+        print(f"[DEBUG] Connecting to WiFi network: {ssid}")
+        print("[DEBUG] (NeoPixel should be flashing during connection)")
+        try:
+            self.network.connect()
+            print("[DEBUG] WiFi connected successfully!")
+        except Exception as e:
+            print(f"[ERROR] WiFi connection failed: {e}")
+            raise
 
         # Animation state
         self.blocks = []
@@ -146,6 +189,7 @@ class TetrisClock:
         self.last_ampm = ""
         self.show_colon = True
         self.animation_complete = True
+        print("[DEBUG] TetrisClock.__init__() complete!")
 
     def clear_display(self):
         """Clear the display bitmap"""
@@ -294,20 +338,29 @@ class TetrisClock:
         last_second = -1
         last_minute = -1
 
-        print("Tetris Clock starting...")
-        print("Getting initial time...")
+        print("[DEBUG] run() method starting...")
+        print("[DEBUG] Syncing time with network...")
 
         # Sync time on startup
         try:
             self.network.get_local_time()
-            print("Time synchronized!")
+            print("[DEBUG] Time synchronized successfully!")
         except Exception as e:
-            print(f"Warning: Could not sync time: {e}")
+            print(f"[WARNING] Could not sync time: {e}")
+            print("[DEBUG] Continuing with system time...")
+
+        print("[DEBUG] Entering main loop...")
+        loop_count = 0
 
         while True:
             current_time = time.localtime()
             current_second = current_time.tm_sec
             current_minute = current_time.tm_min
+
+            # Debug output every 100 loops (approximately every 5 seconds)
+            loop_count += 1
+            if loop_count % 100 == 0:
+                print(f"[DEBUG] Loop #{loop_count}, time: {current_time.tm_hour:02d}:{current_time.tm_min:02d}:{current_time.tm_sec:02d}")
 
             # Get formatted time
             time_str, ampm = self.get_current_time()
@@ -316,7 +369,7 @@ class TetrisClock:
             if current_minute != last_minute or last_minute == -1:
                 # Check if we need to animate
                 if time_str != self.last_time or FORCE_REFRESH:
-                    print(f"Time: {time_str} {ampm}")
+                    print(f"[DEBUG] Updating display - Time: {time_str} {ampm}")
                     self.animate_time(time_str, ampm)
                     self.last_time = time_str
                     self.last_ampm = ampm
@@ -337,15 +390,30 @@ class TetrisClock:
 
             # Resync time periodically (every hour)
             if current_minute == 0 and current_second == 0:
+                print("[DEBUG] Hourly time resync...")
                 try:
                     self.network.get_local_time()
-                except Exception:
-                    pass
+                    print("[DEBUG] Time resync successful!")
+                except Exception as e:
+                    print(f"[WARNING] Time resync failed: {e}")
 
             time.sleep(0.05)
 
 
 # Main entry point
 if __name__ == "__main__":
-    clock = TetrisClock()
-    clock.run()
+    print("[DEBUG] Main entry point reached")
+    print("[DEBUG] Creating TetrisClock instance...")
+    try:
+        clock = TetrisClock()
+        print("[DEBUG] TetrisClock instance created, starting run()...")
+        clock.run()
+    except Exception as e:
+        print("=" * 40)
+        print(f"[FATAL ERROR] {type(e).__name__}: {e}")
+        print("=" * 40)
+        print("[DEBUG] The clock has stopped due to an error.")
+        print("[DEBUG] Check the error message above for details.")
+        # Keep running so the error message stays visible
+        while True:
+            time.sleep(1)
