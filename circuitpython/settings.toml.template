@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2023 Adafruit Industries
+#
+# SPDX-License-Identifier: MIT
+
+# WiFi and Settings Template for CircuitPython 8.x+
+# Copy this file to settings.toml and fill in your credentials
+# DO NOT commit settings.toml to version control!
+
+# WiFi credentials
+CIRCUITPY_WIFI_SSID = "YOUR_WIFI_SSID"
+CIRCUITPY_WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
+
+# Timezone setting (see: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+TIMEZONE = "America/New_York"
+
+# Optional: Adafruit IO credentials for time sync
+# Leave empty to use worldtimeapi.org instead
+AIO_USERNAME = ""
+AIO_KEY = ""
