@@ -35,6 +35,10 @@ print("[DEBUG] Importing board...")
 import board
 print("[DEBUG] Importing displayio...")
 import displayio
+print("[DEBUG] Importing rtc...")
+import rtc
+print("[DEBUG] Importing wifi...")
+import wifi
 print("[DEBUG] Importing Matrix from adafruit_matrixportal.matrix...")
 from adafruit_matrixportal.matrix import Matrix
 print("[DEBUG] Importing Network from adafruit_matrixportal.network...")
@@ -281,7 +285,7 @@ class TetrisClock:
         self.last_time = ""
         self.show_colon = True
         self.finished_animating = True
-        self.last_daily_reconnect_day = -1  # Track last day we did daily reconnect
+        self.last_daily_reconnect_yday = -1  # Track last day of year we did daily reconnect
         print("[DEBUG] TetrisClock.__init__() complete!")
 
     def sync_time_with_retry(self, max_retries=None, retry_delay=None):
@@ -312,7 +316,6 @@ class TetrisClock:
                 year, month, day = [int(x) for x in date_part.split("-")]
                 time_part = time_part.split(".")[0]
                 hour, minute, second = [int(x) for x in time_part.split(":")]
-                import rtc
                 r = rtc.RTC()
                 r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
                 print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
@@ -337,7 +340,6 @@ class TetrisClock:
             # Disconnect first if connected
             try:
                 print("[DEBUG] Disconnecting from WiFi...")
-                import wifi
                 wifi.radio.stop_station()
                 time.sleep(2)  # Wait for disconnect to complete
             except Exception as e:
@@ -767,12 +769,12 @@ class TetrisClock:
 
             # Daily WiFi reconnection to catch daylight saving time changes
             current_hour = current_time.tm_hour
-            current_day = current_time.tm_mday
+            current_yday = current_time.tm_yday
             if (current_hour == DAILY_RECONNECT_HOUR and
                     current_minute == DAILY_RECONNECT_MINUTE and
-                    current_day != self.last_daily_reconnect_day):
+                    current_yday != self.last_daily_reconnect_yday):
                 print(f"[DEBUG] Daily WiFi reconnection at {DAILY_RECONNECT_HOUR:02d}:{DAILY_RECONNECT_MINUTE:02d}...")
-                self.last_daily_reconnect_day = current_day
+                self.last_daily_reconnect_yday = current_yday
                 if self.reconnect_wifi():
                     # After reconnection, sync time to catch any DST changes
                     self.sync_time_with_retry()
