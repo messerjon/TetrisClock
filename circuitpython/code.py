@@ -49,19 +49,23 @@ DISPLAY_HEIGHT = 32
 SCALE = 2  # Scale factor for blocks (2 = 2x2 pixel blocks)
 BRIGHTNESS = 0.3  # LED brightness (0.0 to 1.0) - lower values reduce intensity
 
-# Tetris block colors - dimmed for comfortable viewing
-# Values are scaled down for reduced intensity
+# Tetris block colors - matching original library
+# Color index in fall instructions: 0=Red, 1=Green, 2=Blue, 3=White, 4=Yellow, 5=Cyan, 6=Magenta, 7=Orange
+# Index 8 is Black (background) for our bitmap
 TETRIS_COLORS = [
-    0x000000,  # 0: Black (background)
-    0x800000,  # 1: Red (dimmed)
-    0x008000,  # 2: Green (dimmed)
-    0x000080,  # 3: Blue (dimmed)
+    0x800000,  # 0: Red (dimmed)
+    0x008000,  # 1: Green (dimmed)
+    0x000080,  # 2: Blue (dimmed)
+    0x606060,  # 3: White (dimmed)
     0x808000,  # 4: Yellow (dimmed)
-    0x800080,  # 5: Magenta (dimmed)
-    0x008080,  # 6: Cyan (dimmed)
+    0x008080,  # 5: Cyan (dimmed)
+    0x800080,  # 6: Magenta (dimmed)
     0x804000,  # 7: Orange (dimmed)
-    0x808080,  # 8: White/Gray (dimmed)
+    0x000000,  # 8: Black (background)
 ]
+
+# Color index for background (black)
+COLOR_BLACK = 8
 
 # Fall instructions for each digit
 # Format: (blocktype, color, x_pos, y_stop, num_rot)
@@ -69,6 +73,10 @@ TETRIS_COLORS = [
 # Colors: 1=Red, 2=Green, 3=Blue, 4=Yellow, 5=Magenta, 6=Cyan, 7=Orange
 
 # Original number patterns from TetrisNumbers.h
+# Format: (blocktype, color, x_pos, y_stop, num_rot)
+# Blocktype: 0=Square, 1=L, 2=J, 3=I, 4=S, 5=Z, 6=T, 7=Corner
+# Colors: 0=Red, 1=Green, 2=Blue, 3=White, 4=Yellow, 5=Cyan, 6=Magenta, 7=Orange
+
 NUM_0 = [
     (2, 5, 4, 16, 0), (4, 7, 2, 16, 1), (3, 4, 0, 16, 1), (6, 6, 1, 16, 1),
     (5, 1, 4, 14, 0), (6, 6, 0, 13, 3), (5, 1, 4, 12, 0), (5, 1, 0, 11, 0),
@@ -76,55 +84,55 @@ NUM_0 = [
 ]
 
 NUM_1 = [
-    (3, 4, 2, 16, 1), (3, 4, 2, 14, 1), (3, 4, 2, 12, 1), (3, 4, 2, 10, 1),
-    (0, 4, 2, 8, 0)
+    (2, 5, 4, 16, 0), (3, 4, 4, 15, 1), (3, 4, 5, 13, 3), (2, 5, 4, 11, 2),
+    (0, 0, 4, 8, 0)
 ]
 
 NUM_2 = [
-    (0, 4, 4, 16, 0), (3, 6, 0, 16, 0), (1, 2, 2, 16, 3), (1, 2, 2, 15, 0),
-    (3, 4, 1, 12, 0), (1, 2, 0, 12, 1), (2, 5, 4, 12, 3), (0, 4, 4, 10, 0),
-    (3, 6, 0, 8, 0), (2, 5, 4, 8, 3), (1, 2, 0, 8, 1)
+    (0, 0, 4, 16, 0), (3, 4, 0, 16, 1), (1, 2, 1, 16, 3), (1, 2, 1, 15, 0),
+    (3, 4, 1, 12, 2), (1, 2, 0, 12, 1), (2, 5, 3, 12, 3), (0, 0, 4, 10, 0),
+    (3, 4, 1, 8, 0), (2, 5, 3, 8, 3), (1, 2, 0, 8, 1)
 ]
 
 NUM_3 = [
-    (1, 2, 4, 16, 3), (2, 5, 0, 16, 1), (3, 6, 2, 15, 0), (0, 4, 4, 14, 0),
-    (3, 6, 1, 12, 0), (1, 2, 0, 12, 1), (3, 6, 4, 12, 1), (2, 5, 4, 11, 0),
-    (3, 6, 1, 8, 0), (1, 2, 0, 8, 1), (2, 5, 4, 8, 3)
+    (1, 2, 3, 16, 3), (2, 5, 0, 16, 1), (3, 4, 1, 15, 2), (0, 0, 4, 14, 0),
+    (3, 4, 1, 12, 2), (1, 2, 0, 12, 1), (3, 4, 5, 12, 3), (2, 5, 3, 11, 0),
+    (3, 4, 1, 8, 0), (1, 2, 0, 8, 1), (2, 5, 3, 8, 3)
 ]
 
 NUM_4 = [
-    (0, 4, 4, 16, 0), (0, 4, 4, 14, 0), (3, 6, 1, 12, 0), (1, 2, 0, 12, 1),
-    (2, 5, 0, 10, 0), (2, 5, 4, 12, 3), (3, 6, 4, 10, 1), (2, 5, 0, 9, 2),
-    (3, 6, 5, 10, 1)
+    (0, 0, 4, 16, 0), (0, 0, 4, 14, 0), (3, 4, 1, 12, 0), (1, 2, 0, 12, 1),
+    (2, 5, 0, 10, 0), (2, 5, 3, 12, 3), (3, 4, 4, 10, 3), (2, 5, 0, 9, 2),
+    (3, 4, 5, 10, 1)
 ]
 
 NUM_5 = [
-    (0, 4, 0, 16, 0), (2, 5, 2, 16, 1), (2, 5, 4, 15, 0), (3, 6, 4, 16, 1),
-    (3, 6, 1, 12, 0), (1, 2, 0, 12, 1), (2, 5, 4, 12, 3), (0, 4, 0, 10, 0),
-    (3, 6, 0, 8, 0), (1, 2, 0, 8, 1), (2, 5, 4, 8, 3)
+    (0, 0, 0, 16, 0), (2, 5, 2, 16, 1), (2, 5, 3, 15, 0), (3, 4, 5, 16, 1),
+    (3, 4, 1, 12, 0), (1, 2, 0, 12, 1), (2, 5, 3, 12, 3), (0, 0, 0, 10, 0),
+    (3, 4, 1, 8, 2), (1, 2, 0, 8, 1), (2, 5, 3, 8, 3)
 ]
 
 NUM_6 = [
     (2, 5, 0, 16, 1), (5, 1, 2, 16, 1), (6, 6, 0, 15, 3), (6, 6, 4, 16, 3),
-    (5, 1, 4, 14, 0), (3, 6, 1, 12, 0), (2, 5, 0, 13, 2), (3, 6, 2, 11, 0),
-    (0, 4, 0, 10, 0), (3, 6, 0, 8, 0), (1, 2, 0, 8, 1), (2, 5, 4, 8, 3)
+    (5, 1, 4, 14, 0), (3, 4, 1, 12, 2), (2, 5, 0, 13, 2), (3, 4, 2, 11, 0),
+    (0, 0, 0, 10, 0), (3, 4, 1, 8, 0), (1, 2, 0, 8, 1), (2, 5, 3, 8, 3)
 ]
 
 NUM_7 = [
-    (0, 4, 4, 16, 0), (0, 4, 4, 14, 0), (1, 2, 4, 12, 0), (3, 6, 5, 13, 1),
-    (2, 5, 4, 11, 2), (3, 6, 0, 8, 0), (2, 5, 4, 8, 3), (1, 2, 0, 8, 1)
+    (0, 0, 4, 16, 0), (1, 2, 4, 14, 0), (3, 4, 5, 13, 1), (2, 5, 4, 11, 2),
+    (3, 4, 1, 8, 2), (2, 5, 3, 8, 3), (1, 2, 0, 8, 1)
 ]
 
 NUM_8 = [
-    (3, 6, 1, 16, 0), (6, 6, 0, 16, 1), (3, 6, 5, 16, 1), (1, 2, 2, 15, 3),
+    (3, 4, 1, 16, 0), (6, 6, 0, 16, 1), (3, 4, 5, 16, 1), (1, 2, 2, 15, 3),
     (4, 7, 0, 14, 0), (1, 2, 1, 12, 3), (6, 6, 4, 13, 1), (2, 5, 0, 11, 1),
     (4, 7, 0, 10, 0), (4, 7, 4, 11, 0), (5, 1, 0, 8, 1), (5, 1, 2, 8, 1),
     (1, 2, 4, 9, 2)
 ]
 
 NUM_9 = [
-    (0, 4, 0, 16, 0), (3, 6, 2, 16, 0), (1, 2, 2, 15, 3), (1, 2, 4, 15, 2),
-    (3, 6, 1, 12, 0), (3, 6, 5, 12, 1), (5, 1, 0, 12, 0), (1, 2, 2, 11, 3),
+    (0, 0, 0, 16, 0), (3, 4, 2, 16, 0), (1, 2, 2, 15, 3), (1, 2, 4, 15, 2),
+    (3, 4, 1, 12, 2), (3, 4, 5, 12, 3), (5, 1, 0, 12, 0), (1, 2, 2, 11, 3),
     (5, 1, 4, 9, 0), (6, 6, 0, 10, 1), (5, 1, 0, 8, 1), (6, 6, 2, 8, 2)
 ]
 
@@ -233,7 +241,7 @@ class TetrisClock:
         """Clear the display bitmap"""
         for x in range(DISPLAY_WIDTH):
             for y in range(DISPLAY_HEIGHT):
-                self.bitmap[x, y] = 0
+                self.bitmap[x, y] = COLOR_BLACK
 
     def draw_block(self, x, y, color_index, scale=SCALE):
         """Draw a scaled block at the specified position"""
@@ -488,20 +496,20 @@ class TetrisClock:
                     px = colon_x + dx
                     py = y + (8 * SCALE) + dy
                     if 0 <= px < DISPLAY_WIDTH and 0 <= py < DISPLAY_HEIGHT:
-                        self.bitmap[px, py] = 8  # White
+                        self.bitmap[px, py] = 3  # White
             # Lower dot
             for dx in range(colon_size):
                 for dy in range(colon_size):
                     px = colon_x + dx
                     py = y + (12 * SCALE) + dy
                     if 0 <= px < DISPLAY_WIDTH and 0 <= py < DISPLAY_HEIGHT:
-                        self.bitmap[px, py] = 8  # White
+                        self.bitmap[px, py] = 3  # White
 
         return finished_animating
 
     def draw_colon(self, x, y, show=True):
         """Draw or hide the colon"""
-        color = 8 if show else 0  # White or black
+        color = 3 if show else COLOR_BLACK  # White or black
         colon_x = x + (TETRIS_DISTANCE_BETWEEN_DIGITS * 2 * SCALE)
         colon_size = 2 * SCALE
 
@@ -549,7 +557,7 @@ class TetrisClock:
             (0, 4)
         ]
 
-        color = 8  # White/gray for AM/PM
+        color = 3  # White for AM/PM
 
         # Draw first letter (A or P)
         first_letter = letter_a if ampm == "AM" else letter_p
