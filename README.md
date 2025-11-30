@@ -77,25 +77,6 @@ Common examples:
 
 The `settings.toml` file is included in `.gitignore` to prevent accidental commits of your WiFi credentials. Always keep your credentials private!
 
-## Tetris Block Shapes
-
-The clock uses all 7 standard Tetris pieces plus a corner piece:
-- **O (Square)** - 2x2 block
-- **L** - L-shape
-- **J** - Reverse L-shape
-- **I** - 4-block straight line
-- **S** - S-shape
-- **Z** - Reverse S-shape
-- **T** - T-shape
-- **Corner** - 3-block corner piece
-
-## Display Features
-
-- **AM/PM Indicator**: Displayed in the top-right corner (12-hour format only)
-- **Blinking Colon**: The colon between hours and minutes blinks every second
-- **Reduced LED Intensity**: Colors are dimmed to reduce eye strain
-- **Optimized Refresh**: Display refresh is rate-limited to reduce flashing
-
 ## Troubleshooting
 
 ### Using Serial Debug Output
@@ -143,15 +124,6 @@ Tetris Clock - Starting up...
 - Check that `code.py` is in the root of the CIRCUITPY drive
 - Make sure all required libraries are in the `lib` folder
 - Try pressing the reset button on the Matrix Portal
-
-### Display flashing
-- The code uses manual refresh control to minimize flashing
-- If flashing persists, try adjusting the `bit_depth` value in the Matrix initialization
-- Ensure adequate power supply (5V 4A recommended)
-
-### LED too bright
-- Edit the `TETRIS_COLORS` array in `code.py` to use lower hex values
-- Adjust the `bit_depth` parameter (lower values = dimmer display)
 
 ## Credits
 

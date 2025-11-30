@@ -35,8 +35,6 @@ print("[DEBUG] Importing board...")
 import board
 print("[DEBUG] Importing displayio...")
 import displayio
-print("[DEBUG] Importing rtc...")
-import rtc
 print("[DEBUG] Importing Matrix from adafruit_matrixportal.matrix...")
 from adafruit_matrixportal.matrix import Matrix
 print("[DEBUG] Importing Network from adafruit_matrixportal.network...")
@@ -49,29 +47,34 @@ FORCE_REFRESH = True       # Animate all digits on each minute change
 DISPLAY_WIDTH = 64
 DISPLAY_HEIGHT = 32
 SCALE = 2  # Scale factor for blocks (2 = 2x2 pixel blocks)
-BRIGHTNESS = 0.15  # LED brightness (0.0 to 1.0) - lowered for less intensity
+BRIGHTNESS = 0.3  # LED brightness (0.0 to 1.0) - lower values reduce intensity
 
-# Tetris block colors - significantly dimmed for reduced LED intensity
+# Tetris block colors - matching original library
 # Color index in fall instructions: 0=Red, 1=Green, 2=Blue, 3=White, 4=Yellow, 5=Cyan, 6=Magenta, 7=Orange
 # Index 8 is Black (background) for our bitmap
 TETRIS_COLORS = [
-    0x400000,  # 0: Red (very dimmed)
-    0x004000,  # 1: Green (very dimmed)
-    0x000040,  # 2: Blue (very dimmed)
-    0x303030,  # 3: White (very dimmed)
-    0x404000,  # 4: Yellow (very dimmed)
-    0x004040,  # 5: Cyan (very dimmed)
-    0x400040,  # 6: Magenta (very dimmed)
-    0x402000,  # 7: Orange (very dimmed)
+    0x800000,  # 0: Red (dimmed)
+    0x008000,  # 1: Green (dimmed)
+    0x000080,  # 2: Blue (dimmed)
+    0x606060,  # 3: White (dimmed)
+    0x808000,  # 4: Yellow (dimmed)
+    0x008080,  # 5: Cyan (dimmed)
+    0x800080,  # 6: Magenta (dimmed)
+    0x804000,  # 7: Orange (dimmed)
     0x000000,  # 8: Black (background)
 ]
 
 # Color index for background (black)
 COLOR_BLACK = 8
 
-# Fall instructions for each digit - exact copy from original TetrisNumbers.h
+# Fall instructions for each digit
 # Format: (blocktype, color, x_pos, y_stop, num_rot)
-# Blocktype: 0=Square(O), 1=L, 2=J, 3=I, 4=S, 5=Z, 6=T, 7=Corner
+# Blocktype: 0=Square, 1=L, 2=J, 3=I, 4=S, 5=Z, 6=T, 7=Corner
+# Colors: 1=Red, 2=Green, 3=Blue, 4=Yellow, 5=Magenta, 6=Cyan, 7=Orange
+
+# Original number patterns from TetrisNumbers.h
+# Format: (blocktype, color, x_pos, y_stop, num_rot)
+# Blocktype: 0=Square, 1=L, 2=J, 3=I, 4=S, 5=Z, 6=T, 7=Corner
 # Colors: 0=Red, 1=Green, 2=Blue, 3=White, 4=Yellow, 5=Cyan, 6=Magenta, 7=Orange
 
 NUM_0 = [
@@ -81,7 +84,7 @@ NUM_0 = [
 ]
 
 NUM_1 = [
-    (0, 0, 4, 16, 0), (3, 4, 4, 15, 1), (3, 4, 5, 13, 3), (2, 5, 4, 11, 2),
+    (2, 5, 4, 16, 0), (3, 4, 4, 15, 1), (3, 4, 5, 13, 3), (2, 5, 4, 11, 2),
     (0, 0, 4, 8, 0)
 ]
 
@@ -135,6 +138,12 @@ NUM_9 = [
 
 NUMBERS = [NUM_0, NUM_1, NUM_2, NUM_3, NUM_4, NUM_5, NUM_6, NUM_7, NUM_8, NUM_9]
 
+# AM/PM letters using simplified block patterns
+# Format: list of (x, y) coordinates for each block
+LETTER_A = [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (1, 2), (0, 3), (1, 3), (0, 4), (1, 4)]
+LETTER_P = [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (0, 3), (0, 4)]
+LETTER_M = [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 1), (2, 2), (3, 1), (4, 0), (4, 1), (4, 2), (4, 3), (4, 4)]
+
 # Distance between digits
 TETRIS_DISTANCE_BETWEEN_DIGITS = 7
 TETRIS_Y_DROP_DEFAULT = 16
@@ -168,12 +177,12 @@ class TetrisClock:
     def __init__(self):
         print("[DEBUG] TetrisClock.__init__() starting...")
 
-        # Initialize the matrix with lower bit depth to reduce flashing
+        # Initialize the matrix
         print("[DEBUG] Initializing LED matrix...")
         try:
-            self.matrix = Matrix(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, bit_depth=1)
+            self.matrix = Matrix(width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, bit_depth=2)
             self.display = self.matrix.display
-            # Disable auto-refresh to prevent flashing - we control when to refresh
+            # Reduce auto-refresh to prevent flashing
             self.display.auto_refresh = False
             print("[DEBUG] LED matrix initialized successfully!")
         except Exception as e:
@@ -184,7 +193,7 @@ class TetrisClock:
         print("[DEBUG] Creating display bitmap...")
         self.bitmap = displayio.Bitmap(DISPLAY_WIDTH, DISPLAY_HEIGHT, len(TETRIS_COLORS))
 
-        # Create the palette with dimmed colors
+        # Create the palette
         self.palette = displayio.Palette(len(TETRIS_COLORS))
         for i, color in enumerate(TETRIS_COLORS):
             self.palette[i] = color
@@ -226,7 +235,6 @@ class TetrisClock:
         self.last_time = ""
         self.show_colon = True
         self.finished_animating = True
-        self.current_ampm = ""
         print("[DEBUG] TetrisClock.__init__() complete!")
 
     def clear_display(self):
@@ -254,16 +262,15 @@ class TetrisClock:
         offset2 = 2 * scale
         offset3 = 3 * scale
 
-        # Square (O-piece) - blocktype 0
+        # Square (O-piece)
         if blocktype == 0:
-            # 2x2 square - always same orientation
             self.draw_block(x_pos, y_pos, color_idx, scale)
             self.draw_block(x_pos + offset1, y_pos, color_idx, scale)
             self.draw_block(x_pos, y_pos - offset1, color_idx, scale)
             self.draw_block(x_pos + offset1, y_pos - offset1, color_idx, scale)
             return
 
-        # L-Shape - blocktype 1
+        # L-Shape
         if blocktype == 1:
             if num_rot == 0:
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -287,7 +294,7 @@ class TetrisClock:
                 self.draw_block(x_pos + offset2, y_pos - offset1, color_idx, scale)
             return
 
-        # J-Shape (reverse L) - blocktype 2
+        # J-Shape (reverse L)
         if blocktype == 2:
             if num_rot == 0:
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -311,7 +318,7 @@ class TetrisClock:
                 self.draw_block(x_pos + offset2, y_pos, color_idx, scale)
             return
 
-        # I-Shape - blocktype 3
+        # I-Shape
         if blocktype == 3:
             if num_rot == 0 or num_rot == 2:  # Horizontal
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -325,7 +332,7 @@ class TetrisClock:
                 self.draw_block(x_pos, y_pos - offset3, color_idx, scale)
             return
 
-        # S-Shape - blocktype 4
+        # S-Shape
         if blocktype == 4:
             if num_rot == 0 or num_rot == 2:
                 self.draw_block(x_pos + offset1, y_pos, color_idx, scale)
@@ -339,7 +346,7 @@ class TetrisClock:
                 self.draw_block(x_pos + offset2, y_pos - offset1, color_idx, scale)
             return
 
-        # Z-Shape (reverse S) - blocktype 5
+        # Z-Shape (reverse S)
         if blocktype == 5:
             if num_rot == 0 or num_rot == 2:
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -353,7 +360,7 @@ class TetrisClock:
                 self.draw_block(x_pos + offset1, y_pos - offset1, color_idx, scale)
             return
 
-        # T-Shape - blocktype 6
+        # T-Shape
         if blocktype == 6:
             if num_rot == 0:
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -377,7 +384,7 @@ class TetrisClock:
                 self.draw_block(x_pos + offset1, y_pos - offset2, color_idx, scale)
             return
 
-        # Corner-Shape (3 blocks in L corner) - blocktype 7
+        # Corner-Shape (3 blocks in L corner)
         if blocktype == 7:
             if num_rot == 0:
                 self.draw_block(x_pos, y_pos, color_idx, scale)
@@ -527,7 +534,7 @@ class TetrisClock:
             return
 
         # Simple 3x5 pixel font for A, M, P
-        # Each letter is designed to be visible on LED matrix
+        # Each letter is 3 pixels wide, 5 pixels tall
         letter_a = [
             (1, 0),
             (0, 1), (2, 1),
@@ -560,8 +567,8 @@ class TetrisClock:
             if 0 <= px < DISPLAY_WIDTH and 0 <= py < DISPLAY_HEIGHT:
                 self.bitmap[px, py] = color
 
-        # Draw M (offset by 4 pixels)
-        m_offset = 4
+        # Draw M (offset by 4 pixels for A or 4 for P)
+        m_offset = 4 if ampm == "AM" else 4
         for dx, dy in letter_m:
             px = x + m_offset + dx
             py = y + dy
@@ -587,8 +594,15 @@ class TetrisClock:
 
         return time_str, ampm
 
-    def sync_time(self):
-        """Synchronize time from worldtimeapi.org"""
+    def run(self):
+        """Main loop"""
+        last_second = -1
+        last_minute = -1
+
+        print("[DEBUG] run() method starting...")
+        print("[DEBUG] Syncing time with network...")
+
+        # Sync time on startup using worldtimeapi.org
         try:
             TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
             print(f"[DEBUG] Fetching time from {TIME_URL}")
@@ -599,24 +613,12 @@ class TetrisClock:
             year, month, day = [int(x) for x in date_part.split("-")]
             time_part = time_part.split(".")[0]
             hour, minute, second = [int(x) for x in time_part.split(":")]
+            import rtc
             r = rtc.RTC()
             r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
             print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
-            return True
         except Exception as e:
             print(f"[WARNING] Could not sync time: {e}")
-            return False
-
-    def run(self):
-        """Main loop"""
-        last_second = -1
-        last_minute = -1
-
-        print("[DEBUG] run() method starting...")
-        print("[DEBUG] Syncing time with network...")
-
-        # Sync time on startup
-        if not self.sync_time():
             print("[DEBUG] Continuing with system time...")
 
         print("[DEBUG] Entering main loop...")
@@ -626,10 +628,7 @@ class TetrisClock:
         y_finish = 26  # Y finish position
         ampm_x = 55  # X position for AM/PM (right side of display)
         ampm_y = 2   # Y position for AM/PM (top)
-
-        # Track refresh timing to reduce flashing
-        last_refresh_time = time.monotonic()
-        min_refresh_interval = 0.03  # Minimum 30ms between refreshes
+        current_ampm = ""
 
         while True:
             current_time = time.localtime()
@@ -644,21 +643,18 @@ class TetrisClock:
                 print(f"[DEBUG] Updating display - Time: {time_str} {ampm}")
                 self.set_time(time_str, FORCE_REFRESH)
                 self.finished_animating = False
-                self.current_ampm = ampm
+                current_ampm = ampm
                 last_minute = current_minute
 
-            # Update animation with rate limiting
-            current_monotonic = time.monotonic()
+            # Update animation
             if not self.finished_animating:
-                if current_monotonic - last_refresh_time >= min_refresh_interval:
-                    self.clear_display()
-                    self.finished_animating = self.draw_numbers(x_pos, y_finish, self.show_colon)
-                    # Draw AM/PM indicator
-                    if TWELVE_HOUR_FORMAT and self.current_ampm:
-                        self.draw_ampm(self.current_ampm, ampm_x, ampm_y)
-                    # Manual refresh to prevent flashing
-                    self.display.refresh()
-                    last_refresh_time = current_monotonic
+                self.clear_display()
+                self.finished_animating = self.draw_numbers(x_pos, y_finish, self.show_colon)
+                # Draw AM/PM indicator
+                if TWELVE_HOUR_FORMAT and current_ampm:
+                    self.draw_ampm(current_ampm, ampm_x, ampm_y)
+                # Manual refresh to prevent flashing
+                self.display.refresh()
 
             # Blink colon every second
             if current_second != last_second:
@@ -666,9 +662,6 @@ class TetrisClock:
                 if self.finished_animating:
                     y = y_finish - (TETRIS_Y_DROP_DEFAULT * SCALE)
                     self.draw_colon(x_pos, y, self.show_colon)
-                    # Redraw AM/PM when updating colon (since we clear the area)
-                    if TWELVE_HOUR_FORMAT and self.current_ampm:
-                        self.draw_ampm(self.current_ampm, ampm_x, ampm_y)
                     # Manual refresh
                     self.display.refresh()
                 last_second = current_second
@@ -676,10 +669,23 @@ class TetrisClock:
             # Resync time periodically (every hour)
             if current_minute == 0 and current_second == 0:
                 print("[DEBUG] Hourly time resync...")
-                if self.sync_time():
+                try:
+                    TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
+                    response = self.network.fetch(TIME_URL)
+                    time_data = response.json()
+                    datetime_str = time_data["datetime"]
+                    date_part, time_part = datetime_str.split("T")
+                    year, month, day = [int(x) for x in date_part.split("-")]
+                    time_part = time_part.split(".")[0]
+                    hour, minute, second = [int(x) for x in time_part.split(":")]
+                    import rtc
+                    r = rtc.RTC()
+                    r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
                     print("[DEBUG] Time resync successful!")
+                except Exception as e:
+                    print(f"[WARNING] Time resync failed: {e}")
 
-            time.sleep(0.02)
+            time.sleep(0.05)
 
 
 # Main entry point
