@@ -17,3 +17,14 @@ TIMEZONE = "America/New_York"
 # Leave empty to use worldtimeapi.org instead
 AIO_USERNAME = ""
 AIO_KEY = ""
+
+# Display settings
+TWELVE_HOUR_FORMAT = "true"    # Set to "false" for 24-hour format
+FORCE_REFRESH = "true"         # Animate all digits on each minute change
+BRIGHTNESS = "0.3"             # LED brightness (0.0 to 1.0) - lower values reduce intensity
+
+# Time sync settings
+TIME_SYNC_RETRIES = "3"        # Number of retries for initial time sync
+TIME_SYNC_RETRY_DELAY = "5"    # Seconds to wait between retry attempts
+DAILY_RECONNECT_HOUR = "2"     # Hour to reconnect WiFi daily (0-23) for daylight savings
+DAILY_RECONNECT_MINUTE = "1"   # Minute to reconnect WiFi daily (0-59)

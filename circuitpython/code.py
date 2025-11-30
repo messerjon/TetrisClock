@@ -35,19 +35,67 @@ print("[DEBUG] Importing board...")
 import board
 print("[DEBUG] Importing displayio...")
 import displayio
+print("[DEBUG] Importing rtc...")
+import rtc
 print("[DEBUG] Importing Matrix from adafruit_matrixportal.matrix...")
 from adafruit_matrixportal.matrix import Matrix
 print("[DEBUG] Importing Network from adafruit_matrixportal.network...")
 from adafruit_matrixportal.network import Network
 print("[DEBUG] All imports successful!")
 
-# Configuration
-TWELVE_HOUR_FORMAT = True  # Set to False for 24-hour format
-FORCE_REFRESH = True       # Animate all digits on each minute change
+# Helper function to parse boolean from settings.toml string values
+def get_bool_env(key, default):
+    """Get a boolean value from settings.toml (values are strings)"""
+    val = os.getenv(key)
+    if val is None:
+        return default
+    return val.lower() in ("true", "1", "yes")
+
+
+def get_float_env(key, default):
+    """Get a float value from settings.toml"""
+    val = os.getenv(key)
+    if val is None:
+        return default
+    try:
+        return float(val)
+    except ValueError:
+        return default
+
+
+def get_int_env(key, default):
+    """Get an integer value from settings.toml"""
+    val = os.getenv(key)
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
+# Configuration - loaded from settings.toml with defaults
+TWELVE_HOUR_FORMAT = get_bool_env("TWELVE_HOUR_FORMAT", True)
+FORCE_REFRESH = get_bool_env("FORCE_REFRESH", True)
+BRIGHTNESS = get_float_env("BRIGHTNESS", 0.3)
+TIME_SYNC_RETRIES = get_int_env("TIME_SYNC_RETRIES", 3)
+TIME_SYNC_RETRY_DELAY = get_int_env("TIME_SYNC_RETRY_DELAY", 5)
+DAILY_RECONNECT_HOUR = get_int_env("DAILY_RECONNECT_HOUR", 2)
+DAILY_RECONNECT_MINUTE = get_int_env("DAILY_RECONNECT_MINUTE", 1)
+
+# Fixed display constants
 DISPLAY_WIDTH = 64
 DISPLAY_HEIGHT = 32
 SCALE = 2  # Scale factor for blocks (2 = 2x2 pixel blocks)
-BRIGHTNESS = 0.3  # LED brightness (0.0 to 1.0) - lower values reduce intensity
+
+print(f"[DEBUG] Configuration loaded:")
+print(f"[DEBUG]   TWELVE_HOUR_FORMAT: {TWELVE_HOUR_FORMAT}")
+print(f"[DEBUG]   FORCE_REFRESH: {FORCE_REFRESH}")
+print(f"[DEBUG]   BRIGHTNESS: {BRIGHTNESS}")
+print(f"[DEBUG]   TIME_SYNC_RETRIES: {TIME_SYNC_RETRIES}")
+print(f"[DEBUG]   TIME_SYNC_RETRY_DELAY: {TIME_SYNC_RETRY_DELAY}")
+print(f"[DEBUG]   DAILY_RECONNECT_HOUR: {DAILY_RECONNECT_HOUR}")
+print(f"[DEBUG]   DAILY_RECONNECT_MINUTE: {DAILY_RECONNECT_MINUTE}")
 
 # Tetris block colors - matching original library
 # Color index in fall instructions: 0=Red, 1=Green, 2=Blue, 3=White, 4=Yellow, 5=Cyan, 6=Magenta, 7=Orange
@@ -235,7 +283,67 @@ class TetrisClock:
         self.last_time = ""
         self.show_colon = True
         self.finished_animating = True
+        self.last_daily_reconnect_yday = -1  # Track last day of year we did daily reconnect
         print("[DEBUG] TetrisClock.__init__() complete!")
+
+    def sync_time_with_retry(self, max_retries=None, retry_delay=None):
+        """Sync time with worldtimeapi.org with retry logic for resilience.
+
+        Args:
+            max_retries: Number of retry attempts (default from settings)
+            retry_delay: Seconds between retries (default from settings)
+
+        Returns:
+            True if time sync was successful, False otherwise
+        """
+        if max_retries is None:
+            max_retries = TIME_SYNC_RETRIES
+        if retry_delay is None:
+            retry_delay = TIME_SYNC_RETRY_DELAY
+
+        TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
+
+        for attempt in range(max_retries):
+            try:
+                print(f"[DEBUG] Time sync attempt {attempt + 1}/{max_retries}...")
+                print(f"[DEBUG] Fetching time from {TIME_URL}")
+                response = self.network.fetch(TIME_URL)
+                time_data = response.json()
+                datetime_str = time_data["datetime"]
+                date_part, time_part = datetime_str.split("T")
+                year, month, day = [int(x) for x in date_part.split("-")]
+                time_part = time_part.split(".")[0]
+                hour, minute, second = [int(x) for x in time_part.split(":")]
+                r = rtc.RTC()
+                r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
+                print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
+                return True
+            except Exception as e:
+                print(f"[WARNING] Time sync attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    print(f"[DEBUG] Waiting {retry_delay} seconds before retry...")
+                    time.sleep(retry_delay)
+
+        print("[WARNING] All time sync attempts failed, continuing with system time...")
+        return False
+
+    def reconnect_wifi(self):
+        """Reconnect to WiFi network. Used to refresh connection and catch DST changes.
+
+        Returns:
+            True if reconnection was successful, False otherwise
+        """
+        print("[DEBUG] Reconnecting WiFi...")
+        try:
+            # Reconnect using the network module
+            # The adafruit_matrixportal.network handles ESP32 SPI communication
+            print("[DEBUG] Reconnecting to WiFi...")
+            self.network.connect()
+            print("[DEBUG] WiFi reconnected successfully!")
+            return True
+        except Exception as e:
+            print(f"[ERROR] WiFi reconnection failed: {e}")
+            return False
 
     def clear_display(self):
         """Clear the display bitmap"""
@@ -602,24 +710,8 @@ class TetrisClock:
         print("[DEBUG] run() method starting...")
         print("[DEBUG] Syncing time with network...")
 
-        # Sync time on startup using worldtimeapi.org
-        try:
-            TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
-            print(f"[DEBUG] Fetching time from {TIME_URL}")
-            response = self.network.fetch(TIME_URL)
-            time_data = response.json()
-            datetime_str = time_data["datetime"]
-            date_part, time_part = datetime_str.split("T")
-            year, month, day = [int(x) for x in date_part.split("-")]
-            time_part = time_part.split(".")[0]
-            hour, minute, second = [int(x) for x in time_part.split(":")]
-            import rtc
-            r = rtc.RTC()
-            r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
-            print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
-        except Exception as e:
-            print(f"[WARNING] Could not sync time: {e}")
-            print("[DEBUG] Continuing with system time...")
+        # Sync time on startup using worldtimeapi.org with retries
+        self.sync_time_with_retry()
 
         print("[DEBUG] Entering main loop...")
 
@@ -666,24 +758,25 @@ class TetrisClock:
                     self.display.refresh()
                 last_second = current_second
 
-            # Resync time periodically (every hour)
-            if current_minute == 0 and current_second == 0:
+            # Daily WiFi reconnection to catch daylight saving time changes
+            current_hour = current_time.tm_hour
+            current_yday = current_time.tm_yday
+            did_daily_reconnect = False
+            if (current_hour == DAILY_RECONNECT_HOUR and
+                    current_minute == DAILY_RECONNECT_MINUTE and
+                    current_yday != self.last_daily_reconnect_yday):
+                print(f"[DEBUG] Daily WiFi reconnection at {DAILY_RECONNECT_HOUR:02d}:{DAILY_RECONNECT_MINUTE:02d}...")
+                self.last_daily_reconnect_yday = current_yday
+                did_daily_reconnect = True
+                if self.reconnect_wifi():
+                    # After reconnection, sync time to catch any DST changes
+                    self.sync_time_with_retry()
+
+            # Resync time periodically (every hour on the hour)
+            # Skip if we just did a successful daily reconnect (which includes time sync)
+            if current_minute == 0 and current_second == 0 and not did_daily_reconnect:
                 print("[DEBUG] Hourly time resync...")
-                try:
-                    TIME_URL = f"http://worldtimeapi.org/api/timezone/{self.timezone}"
-                    response = self.network.fetch(TIME_URL)
-                    time_data = response.json()
-                    datetime_str = time_data["datetime"]
-                    date_part, time_part = datetime_str.split("T")
-                    year, month, day = [int(x) for x in date_part.split("-")]
-                    time_part = time_part.split(".")[0]
-                    hour, minute, second = [int(x) for x in time_part.split(":")]
-                    import rtc
-                    r = rtc.RTC()
-                    r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
-                    print("[DEBUG] Time resync successful!")
-                except Exception as e:
-                    print(f"[WARNING] Time resync failed: {e}")
+                self.sync_time_with_retry(max_retries=1)
 
             time.sleep(0.05)
 

@@ -2,10 +2,17 @@
 
 A WiFi clock that displays the time using falling Tetris blocks. Adapted from [WiFi-Tetris-Clock](https://github.com/witnessmenow/WiFi-Tetris-Clock) for the Adafruit Matrix Portal Starter Kit (ADABOX 016).
 
+This code was converted from C++ to CircuitPython using [GitHub Copilot](https://github.com/features/copilot).
+
 ![Tetris Clock Animation](https://thumbs.gfycat.com/RecklessSpecificKoodoo-size_restricted.gif)
 
 ## Hardware
 
+You can purchase the complete kit from:
+- [Adafruit - Matrix Portal Starter Kit (Product 4812)](https://www.adafruit.com/product/4812)
+- [DigiKey - Adafruit Matrix Portal Starter Kit](https://www.digikey.com/en/products/detail/adafruit-industries-llc/4812/15189153)
+
+Or purchase components separately:
 - [Adafruit Matrix Portal](https://www.adafruit.com/product/4745) - The brains of the operation
 - [64x32 RGB LED Matrix Panel](https://www.adafruit.com/product/2278) - Included in ADABOX 016
 - USB-C power supply (5V 4A recommended)
@@ -53,12 +60,26 @@ Copy `circuitpython/code.py` to your `CIRCUITPY` drive.
 
 ## Configuration Options
 
-You can customize the clock by editing the configuration section at the top of `code.py`:
+All configuration options can be set in `settings.toml`. The following options are available:
 
-```python
-TWELVE_HOUR_FORMAT = True   # Set to False for 24-hour format
-FORCE_REFRESH = True        # Animate all digits on each minute change
+### Display Settings
+
+```toml
+TWELVE_HOUR_FORMAT = "true"    # Set to "false" for 24-hour format
+FORCE_REFRESH = "true"         # Animate all digits on each minute change
+BRIGHTNESS = "0.3"             # LED brightness (0.0 to 1.0)
 ```
+
+### Time Sync Settings
+
+```toml
+TIME_SYNC_RETRIES = "3"        # Number of retries for initial time sync
+TIME_SYNC_RETRY_DELAY = "5"    # Seconds to wait between retry attempts
+DAILY_RECONNECT_HOUR = "2"     # Hour to reconnect WiFi daily (0-23) for daylight savings
+DAILY_RECONNECT_MINUTE = "1"   # Minute to reconnect WiFi daily (0-59)
+```
+
+The clock automatically reconnects to WiFi and resyncs time daily at the configured time (default 02:01) to catch daylight saving time changes.
 
 ## Timezone Configuration
 
@@ -128,6 +149,7 @@ Tetris Clock - Starting up...
 ## Credits
 
 - Original WiFi-Tetris-Clock by [Brian Lough](https://github.com/witnessmenow/WiFi-Tetris-Clock)
+- Code converted from C++ to CircuitPython using [GitHub Copilot](https://github.com/features/copilot)
 - [TetrisMatrixDraw library](https://github.com/toblum/TetrisAnimation) for inspiration
 - [Adafruit](https://www.adafruit.com/) for the amazing Matrix Portal hardware and libraries
 
