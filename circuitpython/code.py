@@ -37,8 +37,6 @@ print("[DEBUG] Importing displayio...")
 import displayio
 print("[DEBUG] Importing rtc...")
 import rtc
-print("[DEBUG] Importing wifi...")
-import wifi
 print("[DEBUG] Importing Matrix from adafruit_matrixportal.matrix...")
 from adafruit_matrixportal.matrix import Matrix
 print("[DEBUG] Importing Network from adafruit_matrixportal.network...")
@@ -337,15 +335,8 @@ class TetrisClock:
         """
         print("[DEBUG] Reconnecting WiFi...")
         try:
-            # Disconnect first if connected
-            try:
-                print("[DEBUG] Disconnecting from WiFi...")
-                wifi.radio.stop_station()
-                time.sleep(2)  # Wait for disconnect to complete
-            except Exception as e:
-                print(f"[DEBUG] Disconnect note: {e}")
-
-            # Reconnect
+            # Reconnect using the network module
+            # The adafruit_matrixportal.network handles ESP32 SPI communication
             print("[DEBUG] Reconnecting to WiFi...")
             self.network.connect()
             print("[DEBUG] WiFi reconnected successfully!")
