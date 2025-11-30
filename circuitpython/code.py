@@ -770,19 +770,22 @@ class TetrisClock:
             # Daily WiFi reconnection to catch daylight saving time changes
             current_hour = current_time.tm_hour
             current_yday = current_time.tm_yday
+            did_daily_reconnect = False
             if (current_hour == DAILY_RECONNECT_HOUR and
                     current_minute == DAILY_RECONNECT_MINUTE and
                     current_yday != self.last_daily_reconnect_yday):
                 print(f"[DEBUG] Daily WiFi reconnection at {DAILY_RECONNECT_HOUR:02d}:{DAILY_RECONNECT_MINUTE:02d}...")
                 self.last_daily_reconnect_yday = current_yday
+                did_daily_reconnect = True
                 if self.reconnect_wifi():
                     # After reconnection, sync time to catch any DST changes
                     self.sync_time_with_retry()
 
             # Resync time periodically (every hour on the hour)
-            elif current_minute == 0 and current_second == 0:
+            # Skip if we just did a successful daily reconnect (which includes time sync)
+            if current_minute == 0 and current_second == 0 and not did_daily_reconnect:
                 print("[DEBUG] Hourly time resync...")
-                self.sync_time_with_retry(max_retries=1, retry_delay=0)
+                self.sync_time_with_retry(max_retries=1)
 
             time.sleep(0.05)
 
