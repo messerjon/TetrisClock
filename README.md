@@ -53,12 +53,26 @@ Copy `circuitpython/code.py` to your `CIRCUITPY` drive.
 
 ## Configuration Options
 
-You can customize the clock by editing the configuration section at the top of `code.py`:
+All configuration options can be set in `settings.toml`. The following options are available:
 
-```python
-TWELVE_HOUR_FORMAT = True   # Set to False for 24-hour format
-FORCE_REFRESH = True        # Animate all digits on each minute change
+### Display Settings
+
+```toml
+TWELVE_HOUR_FORMAT = "true"    # Set to "false" for 24-hour format
+FORCE_REFRESH = "true"         # Animate all digits on each minute change
+BRIGHTNESS = "0.3"             # LED brightness (0.0 to 1.0)
 ```
+
+### Time Sync Settings
+
+```toml
+TIME_SYNC_RETRIES = "3"        # Number of retries for initial time sync
+TIME_SYNC_RETRY_DELAY = "5"    # Seconds to wait between retry attempts
+DAILY_RECONNECT_HOUR = "2"     # Hour to reconnect WiFi daily (0-23) for daylight savings
+DAILY_RECONNECT_MINUTE = "1"   # Minute to reconnect WiFi daily (0-59)
+```
+
+The clock automatically reconnects to WiFi and resyncs time daily at the configured time (default 02:01) to catch daylight saving time changes.
 
 ## Timezone Configuration
 
