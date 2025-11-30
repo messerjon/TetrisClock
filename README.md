@@ -2,10 +2,17 @@
 
 A WiFi clock that displays the time using falling Tetris blocks. Adapted from [WiFi-Tetris-Clock](https://github.com/witnessmenow/WiFi-Tetris-Clock) for the Adafruit Matrix Portal Starter Kit (ADABOX 016).
 
+This code was converted from C++ to CircuitPython using [GitHub Copilot](https://github.com/features/copilot).
+
 ![Tetris Clock Animation](https://thumbs.gfycat.com/RecklessSpecificKoodoo-size_restricted.gif)
 
 ## Hardware
 
+You can purchase the complete kit from:
+- [Adafruit - Matrix Portal Starter Kit (Product 4812)](https://www.adafruit.com/product/4812)
+- [DigiKey - Adafruit Matrix Portal Starter Kit](https://www.digikey.com/en/products/detail/adafruit-industries-llc/4812/15189153)
+
+Or purchase components separately:
 - [Adafruit Matrix Portal](https://www.adafruit.com/product/4745) - The brains of the operation
 - [64x32 RGB LED Matrix Panel](https://www.adafruit.com/product/2278) - Included in ADABOX 016
 - USB-C power supply (5V 4A recommended)
@@ -142,6 +149,7 @@ Tetris Clock - Starting up...
 ## Credits
 
 - Original WiFi-Tetris-Clock by [Brian Lough](https://github.com/witnessmenow/WiFi-Tetris-Clock)
+- Code converted from C++ to CircuitPython using [GitHub Copilot](https://github.com/features/copilot)
 - [TetrisMatrixDraw library](https://github.com/toblum/TetrisAnimation) for inspiration
 - [Adafruit](https://www.adafruit.com/) for the amazing Matrix Portal hardware and libraries
 
