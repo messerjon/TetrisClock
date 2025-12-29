@@ -286,7 +286,9 @@ class TetrisClock:
         self.show_colon = True
         self.finished_animating = True
         self.last_daily_reconnect_yday = -1  # Track last day of year we did daily reconnect
-        self.last_time_sync = 0  # Track last time sync (monotonic time)
+        # Initialize last_time_sync to current monotonic time to prevent immediate sync on startup
+        # The startup sync is done explicitly in run() method
+        self.last_time_sync = time.monotonic()
         print("[DEBUG] TetrisClock.__init__() complete!")
 
     def sync_time_with_retry(self, max_retries=None, retry_delay=None):
@@ -730,10 +732,6 @@ class TetrisClock:
         ampm_y = 2   # Y position for AM/PM (top)
         current_ampm = ""
 
-        # Use the configured periodic sync interval
-        # More frequent syncs reduce clock drift on devices without hardware RTC
-        PERIODIC_SYNC_INTERVAL = TIME_SYNC_INTERVAL
-
         while True:
             current_time = time.localtime()
             current_second = current_time.tm_sec
@@ -790,10 +788,10 @@ class TetrisClock:
             current_monotonic = time.monotonic()
             time_since_last_sync = current_monotonic - self.last_time_sync
             
-            # Resync every PERIODIC_SYNC_INTERVAL seconds (15 minutes)
+            # Resync every TIME_SYNC_INTERVAL seconds (default 15 minutes = 900 seconds)
             # Skip if we just did a successful daily reconnect (which includes time sync)
-            if time_since_last_sync >= PERIODIC_SYNC_INTERVAL and not did_daily_reconnect:
-                print(f"[DEBUG] Periodic time resync (every {PERIODIC_SYNC_INTERVAL//60} minutes)...")
+            if time_since_last_sync >= TIME_SYNC_INTERVAL and not did_daily_reconnect:
+                print(f"[DEBUG] Periodic time resync (every {TIME_SYNC_INTERVAL//60} minutes)...")
                 self.sync_time_with_retry(max_retries=1)
 
             time.sleep(0.05)
