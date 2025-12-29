@@ -75,11 +75,14 @@ BRIGHTNESS = "0.3"             # LED brightness (0.0 to 1.0)
 ```toml
 TIME_SYNC_RETRIES = "3"        # Number of retries for initial time sync
 TIME_SYNC_RETRY_DELAY = "5"    # Seconds to wait between retry attempts
+TIME_SYNC_INTERVAL = "900"     # Seconds between periodic time syncs (default: 900 = 15 minutes)
 DAILY_RECONNECT_HOUR = "2"     # Hour to reconnect WiFi daily (0-23) for daylight savings
 DAILY_RECONNECT_MINUTE = "1"   # Minute to reconnect WiFi daily (0-59)
 ```
 
-The clock automatically reconnects to WiFi and resyncs time daily at the configured time (default 02:01) to catch daylight saving time changes.
+The clock automatically performs periodic time syncs to prevent clock drift. The Matrix Portal (ESP32) does not have a hardware real-time clock (RTC), so it relies on the microcontroller's internal oscillator which can drift over time. By default, the clock resyncs every 15 minutes (900 seconds) to maintain accuracy. You can adjust this interval using `TIME_SYNC_INTERVAL` - lower values provide better accuracy but consume more network bandwidth.
+
+The clock also reconnects to WiFi and resyncs time daily at the configured time (default 02:01) to catch daylight saving time changes.
 
 ## Timezone Configuration
 
