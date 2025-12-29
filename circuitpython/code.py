@@ -333,7 +333,7 @@ class TetrisClock:
 
         print("[WARNING] All time sync attempts failed, continuing with system time...")
         # Update last_time_sync even on failure to prevent immediate retry spam
-        # Will retry again after PERIODIC_SYNC_INTERVAL
+        # Will retry again after TIME_SYNC_INTERVAL seconds
         self.last_time_sync = time.monotonic()
         return False
 
