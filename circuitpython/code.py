@@ -330,6 +330,9 @@ class TetrisClock:
                     time.sleep(retry_delay)
 
         print("[WARNING] All time sync attempts failed, continuing with system time...")
+        # Update last_time_sync even on failure to prevent immediate retry spam
+        # Will retry again after PERIODIC_SYNC_INTERVAL
+        self.last_time_sync = time.monotonic()
         return False
 
     def reconnect_wifi(self):
