@@ -804,9 +804,12 @@ class TetrisClock:
                         print(f"[DEBUG] Startup time sync attempt {self.startup_sync_attempts}/{STARTUP_SYNC_MAX_ATTEMPTS} (retrying every {STARTUP_SYNC_INTERVAL} seconds)...")
                         self.sync_time_with_retry(max_retries=1)
                     else:
-                        # Give up after max attempts and switch to normal periodic sync
+                        # Give up after max attempts and switch to normal periodic sync mode
+                        # Note: Setting time_synced=True here doesn't mean time was successfully synced,
+                        # but rather signals the end of the aggressive startup retry phase.
+                        # The clock will continue with less frequent periodic sync attempts.
                         print(f"[WARNING] Max startup sync attempts ({STARTUP_SYNC_MAX_ATTEMPTS}) reached. Switching to periodic sync mode.")
-                        self.time_synced = True  # Prevent further startup attempts
+                        self.time_synced = True  # End startup phase, switch to periodic sync
             else:
                 # Normal periodic resync after successful initial sync
                 # Resync every TIME_SYNC_INTERVAL seconds (default 15 minutes = 900 seconds)
