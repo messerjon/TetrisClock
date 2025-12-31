@@ -81,6 +81,8 @@ BRIGHTNESS = get_float_env("BRIGHTNESS", 0.3)
 TIME_SYNC_RETRIES = get_int_env("TIME_SYNC_RETRIES", 3)
 TIME_SYNC_RETRY_DELAY = get_int_env("TIME_SYNC_RETRY_DELAY", 5)
 TIME_SYNC_INTERVAL = get_int_env("TIME_SYNC_INTERVAL", 900)  # Default 15 minutes (900 seconds)
+STARTUP_SYNC_INTERVAL = get_int_env("STARTUP_SYNC_INTERVAL", 30)  # Retry every 30 seconds until first sync
+STARTUP_SYNC_MAX_ATTEMPTS = get_int_env("STARTUP_SYNC_MAX_ATTEMPTS", 60)  # Try for up to 30 minutes
 DAILY_RECONNECT_HOUR = get_int_env("DAILY_RECONNECT_HOUR", 2)
 DAILY_RECONNECT_MINUTE = get_int_env("DAILY_RECONNECT_MINUTE", 1)
 
@@ -96,6 +98,8 @@ print(f"[DEBUG]   BRIGHTNESS: {BRIGHTNESS}")
 print(f"[DEBUG]   TIME_SYNC_RETRIES: {TIME_SYNC_RETRIES}")
 print(f"[DEBUG]   TIME_SYNC_RETRY_DELAY: {TIME_SYNC_RETRY_DELAY}")
 print(f"[DEBUG]   TIME_SYNC_INTERVAL: {TIME_SYNC_INTERVAL}")
+print(f"[DEBUG]   STARTUP_SYNC_INTERVAL: {STARTUP_SYNC_INTERVAL}")
+print(f"[DEBUG]   STARTUP_SYNC_MAX_ATTEMPTS: {STARTUP_SYNC_MAX_ATTEMPTS}")
 print(f"[DEBUG]   DAILY_RECONNECT_HOUR: {DAILY_RECONNECT_HOUR}")
 print(f"[DEBUG]   DAILY_RECONNECT_MINUTE: {DAILY_RECONNECT_MINUTE}")
 
@@ -286,6 +290,8 @@ class TetrisClock:
         self.show_colon = True
         self.finished_animating = True
         self.last_daily_reconnect_yday = -1  # Track last day of year we did daily reconnect
+        self.time_synced = False  # Track if we've successfully synced time at least once
+        self.startup_sync_attempts = 0  # Track number of startup sync attempts
         # Initialize last_time_sync to current monotonic time to prevent immediate sync on startup
         # The startup sync is done explicitly in run() method
         self.last_time_sync = time.monotonic()
@@ -324,6 +330,7 @@ class TetrisClock:
                 print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
                 # Track when we last synced time
                 self.last_time_sync = time.monotonic()
+                self.time_synced = True  # Mark that we've successfully synced at least once
                 return True
             except Exception as e:
                 print(f"[WARNING] Time sync attempt {attempt + 1} failed: {e}")
@@ -788,11 +795,28 @@ class TetrisClock:
             current_monotonic = time.monotonic()
             time_since_last_sync = current_monotonic - self.last_time_sync
             
-            # Resync every TIME_SYNC_INTERVAL seconds (default 15 minutes = 900 seconds)
-            # Skip if we just did a successful daily reconnect (which includes time sync)
-            if time_since_last_sync >= TIME_SYNC_INTERVAL and not did_daily_reconnect:
-                print(f"[DEBUG] Periodic time resync (every {TIME_SYNC_INTERVAL//60} minutes)...")
-                self.sync_time_with_retry(max_retries=1)
+            # If we haven't successfully synced yet, use aggressive startup retry strategy
+            if not self.time_synced:
+                # Retry more frequently during startup until first successful sync
+                if time_since_last_sync >= STARTUP_SYNC_INTERVAL:
+                    self.startup_sync_attempts += 1
+                    if self.startup_sync_attempts <= STARTUP_SYNC_MAX_ATTEMPTS:
+                        print(f"[DEBUG] Startup time sync attempt {self.startup_sync_attempts}/{STARTUP_SYNC_MAX_ATTEMPTS} (retrying every {STARTUP_SYNC_INTERVAL} seconds)...")
+                        self.sync_time_with_retry(max_retries=1)
+                    else:
+                        # Give up after max attempts and switch to normal periodic sync mode
+                        # Note: Setting time_synced=True here doesn't mean time was successfully synced,
+                        # but rather signals the end of the aggressive startup retry phase.
+                        # The clock will continue with less frequent periodic sync attempts.
+                        print(f"[WARNING] Max startup sync attempts ({STARTUP_SYNC_MAX_ATTEMPTS}) reached. Switching to periodic sync mode.")
+                        self.time_synced = True  # End startup phase, switch to periodic sync
+            else:
+                # Normal periodic resync after successful initial sync
+                # Resync every TIME_SYNC_INTERVAL seconds (default 15 minutes = 900 seconds)
+                # Skip if we just did a successful daily reconnect (which includes time sync)
+                if time_since_last_sync >= TIME_SYNC_INTERVAL and not did_daily_reconnect:
+                    print(f"[DEBUG] Periodic time resync (every {TIME_SYNC_INTERVAL//60} minutes)...")
+                    self.sync_time_with_retry(max_retries=1)
 
             time.sleep(0.05)
 
