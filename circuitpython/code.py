@@ -80,6 +80,7 @@ FORCE_REFRESH = get_bool_env("FORCE_REFRESH", True)
 BRIGHTNESS = get_float_env("BRIGHTNESS", 0.3)
 TIME_SYNC_RETRIES = get_int_env("TIME_SYNC_RETRIES", 3)
 TIME_SYNC_RETRY_DELAY = get_int_env("TIME_SYNC_RETRY_DELAY", 5)
+TIME_SYNC_INTERVAL = get_int_env("TIME_SYNC_INTERVAL", 900)  # Default 15 minutes (900 seconds)
 DAILY_RECONNECT_HOUR = get_int_env("DAILY_RECONNECT_HOUR", 2)
 DAILY_RECONNECT_MINUTE = get_int_env("DAILY_RECONNECT_MINUTE", 1)
 
@@ -94,6 +95,7 @@ print(f"[DEBUG]   FORCE_REFRESH: {FORCE_REFRESH}")
 print(f"[DEBUG]   BRIGHTNESS: {BRIGHTNESS}")
 print(f"[DEBUG]   TIME_SYNC_RETRIES: {TIME_SYNC_RETRIES}")
 print(f"[DEBUG]   TIME_SYNC_RETRY_DELAY: {TIME_SYNC_RETRY_DELAY}")
+print(f"[DEBUG]   TIME_SYNC_INTERVAL: {TIME_SYNC_INTERVAL}")
 print(f"[DEBUG]   DAILY_RECONNECT_HOUR: {DAILY_RECONNECT_HOUR}")
 print(f"[DEBUG]   DAILY_RECONNECT_MINUTE: {DAILY_RECONNECT_MINUTE}")
 
@@ -284,6 +286,9 @@ class TetrisClock:
         self.show_colon = True
         self.finished_animating = True
         self.last_daily_reconnect_yday = -1  # Track last day of year we did daily reconnect
+        # Initialize last_time_sync to current monotonic time to prevent immediate sync on startup
+        # The startup sync is done explicitly in run() method
+        self.last_time_sync = time.monotonic()
         print("[DEBUG] TetrisClock.__init__() complete!")
 
     def sync_time_with_retry(self, max_retries=None, retry_delay=None):
@@ -317,6 +322,8 @@ class TetrisClock:
                 r = rtc.RTC()
                 r.datetime = time.struct_time((year, month, day, hour, minute, second, 0, -1, -1))
                 print(f"[DEBUG] Time synchronized: {hour:02d}:{minute:02d}:{second:02d}")
+                # Track when we last synced time
+                self.last_time_sync = time.monotonic()
                 return True
             except Exception as e:
                 print(f"[WARNING] Time sync attempt {attempt + 1} failed: {e}")
@@ -325,6 +332,9 @@ class TetrisClock:
                     time.sleep(retry_delay)
 
         print("[WARNING] All time sync attempts failed, continuing with system time...")
+        # Update last_time_sync even on failure to prevent immediate retry spam
+        # Will retry again after TIME_SYNC_INTERVAL seconds
+        self.last_time_sync = time.monotonic()
         return False
 
     def reconnect_wifi(self):
@@ -772,10 +782,16 @@ class TetrisClock:
                     # After reconnection, sync time to catch any DST changes
                     self.sync_time_with_retry()
 
-            # Resync time periodically (every hour on the hour)
+            # Periodic time resync to prevent clock drift
+            # Microcontrollers without hardware RTC can drift significantly over time
+            # Check if enough time has elapsed since last sync (using monotonic time)
+            current_monotonic = time.monotonic()
+            time_since_last_sync = current_monotonic - self.last_time_sync
+            
+            # Resync every TIME_SYNC_INTERVAL seconds (default 15 minutes = 900 seconds)
             # Skip if we just did a successful daily reconnect (which includes time sync)
-            if current_minute == 0 and current_second == 0 and not did_daily_reconnect:
-                print("[DEBUG] Hourly time resync...")
+            if time_since_last_sync >= TIME_SYNC_INTERVAL and not did_daily_reconnect:
+                print(f"[DEBUG] Periodic time resync (every {TIME_SYNC_INTERVAL//60} minutes)...")
                 self.sync_time_with_retry(max_retries=1)
 
             time.sleep(0.05)
